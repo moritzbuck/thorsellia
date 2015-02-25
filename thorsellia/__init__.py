@@ -4,6 +4,7 @@ import threading
 import time
 import sys
 import sh
+import os
 from thorsellia.clustering import Clustering
 from thorsellia.blast import blast
 from thorsellia.blast import make_db
@@ -39,12 +40,15 @@ def full_pipe():
     return
 
 def run():
-#    G_apicola.annotate_prokka()
+    clustered_all_prot.run()
+    clustered_all_prot.align_all()
+    clustered_all_prot.cat_align()
+    clustered_all_prot.tree_construction(root="PseAer")    
     clustered_all_nucl.run()
     clustered_all_nucl.align_all()
     clustered_all_nucl.cat_align()
-    clustered_all_nucl.tree_construction(root="V_cholerae,P_profundum")    
-    return
+    clustered_all_nucl.tree_construction(root="PseAer")    
+
     
 
 if sh.which("blastp") == None :
@@ -61,27 +65,32 @@ s1_1 = Assembly("1_1", raw_path  + "INBOX/130411_M00485_0043_000000000-A3EV0/Sam
 
 all_assemblies = [Ta, T2_1, B8, B3, s4_1, s1_1]
 
-E_coli = Assembly("E_coli",  None  , None  , out_group_path + "E_coli.fna" , genus = "Escherichia" , species = "coli" , strain = "ATCC" )
-Serratia = Assembly("Serratia",  None  , None  , out_group_path + "Serratia.fna" , genus = "Serratia" , species = "" , strain = "ATCC" )
-S_enterica = Assembly("S_enterica",  None  , None  , out_group_path +"S_enterica.fna", genus = "Salmonella" , species = "enterica" , strain = "Typhi Ty2" )
-P_multocida = Assembly("P_multocida",  None  , None  , out_group_path + "P_multocida.fna" , genus = "Pasteurella" , species = "multocida" , strain = "3480" )
-W_glossinidia = Assembly("W_glossinidia",  None  , None  , out_group_path + "W_glossinidia.fna" , genus = "Wigglesworthia" , species = "glossinidia" , strain = "yale" )
-B_aphidicola = Assembly("B_aphidicola",  None  , None  , out_group_path + "B_aphidicola.fna" , genus = "Buchnera" , species = "aphidicola" , strain = "5A" )
-A_ferroxidans = Assembly("A_ferroxidans",  None  , None  , out_group_path + "A_ferroxidans.fna" , genus = "Acidithiobacillus" , species = "feroxidans" , strain = "ATCC 23270" )
-P_profundum = Assembly("P_profundum",  None  , None  , out_group_path + "P_profundum.fna" , genus = "Photobacterium" , species = "profundum" , strain = "SS9" )
-V_cholerae = Assembly("V_cholerae",  None  , None  , out_group_path + "V_cholerae.fna" , genus = "Vibrio" , species = "cholerae" , strain = "MJ" )
-G_apicola = Assembly("G_apicola",  None  , None  , out_group_path + "G_apicola.fna" , genus = "Vibrio" , species = "cholerae" , strain = "MJ" )
+all_outgroups =  [ Assembly(f.split(".")[0],  None  , None  , out_group_path + f , genus = None , species = None , strain = None)  for f in os.listdir(out_group_path) if ".fna" in f]
 
-all_outgroups = [E_coli,S_enterica,Serratia,P_multocida,P_profundum,V_cholerae]
 
-#clustered_thorsellia = Clustering(all_assemblies, work_root + "MCL_clusters/", "all_thorsellia")
-clustered_all = Clustering(all_assemblies + all_outgroups, work_root + "MCL_clusters/", "all_with_outgroups")
 
+
+## Serratia = Assembly("Serratia",  None  , None  , out_group_path + "Serratia.fna" , genus = "Serratia" , species = "" , strain = "ATCC" )
+## S_enterica = Assembly("S_enterica",  None  , None  , out_group_path +"S_enterica.fna", genus = "Salmonella" , species = "enterica" , strain = "Typhi Ty2" )
+## P_multocida = Assembly("P_multocida",  None  , None  , out_group_path + "P_multocida.fna" , genus = "Pasteurella" , species = "multocida" , strain = "3480" )
+## W_glossinidia = Assembly("W_glossinidia",  None  , None  , out_group_path + "W_glossinidia.fna" , genus = "Wigglesworthia" , species = "glossinidia" , strain = "yale" )
+## B_aphidicola = Assembly("B_aphidicola",  None  , None  , out_group_path + "B_aphidicola.fna" , genus = "Buchnera" , species = "aphidicola" , strain = "5A" )
+## A_ferroxidans = Assembly("A_ferroxidans",  None  , None  , out_group_path + "A_ferroxidans.fna" , genus = "Acidithiobacillus" , species = "feroxidans" , strain = "ATCC 23270" )
+## P_profundum = Assembly("P_profundum",  None  , None  , out_group_path + "P_profundum.fna" , genus = "Photobacterium" , species = "profundum" , strain = "SS9" )
+## V_cholerae = Assembly("V_cholerae",  None  , None  , out_group_path + "V_cholerae.fna" , genus = "Vibrio" , species = "cholerae" , strain = "MJ" )
+## G_apicola = Assembly("G_apicola",  None  , None  , out_group_path + "G_apicola.fna" , genus = "Vibrio" , species = "cholerae" , strain = "MJ" )
+
+## all_outgroups = [E_coli,S_enterica,Serratia,P_multocida,P_profundum,V_cholerae]
+
+## #clustered_thorsellia = Clustering(all_assemblies, work_root + "MCL_clusters/", "all_thorsellia")
+clustered_all_prot = Clustering(all_assemblies + all_outgroups, work_root + "MCL_clusters/all_prot_w_outgroups/", "all_prot_with_outgroups", seq_type="proteins")
 clustered_all_nucl = Clustering(all_assemblies + all_outgroups, work_root + "MCL_clusters/all_nucl_w_outgroups/", "all_nucleotide_with_outgroups")
 
-#wolfies = SixteenS(name = "wolbachia_nd_friends", path = work_root + "wolbachia/", raw = work_root + "wolbachia/wolbachia_nd_friends.fasta")
-all_wolfies = SixteenS(name = "all_wolfies", path = work_root + "wolbachia/", raw = work_root + "wolbachia/all_wolbachia.fasta")
-pap_wolbs = SixteenS("paper_wolbachs",path = work_root + "wolbachia/", raw = work_root + "wolbachia/paper_wolbachias.fasta")
+
+
+## #wolfies = SixteenS(name = "wolbachia_nd_friends", path = work_root + "wolbachia/", raw = work_root + "wolbachia/wolbachia_nd_friends.fasta")
+## all_wolfies = SixteenS(name = "all_wolfies", path = work_root + "wolbachia/", raw = work_root + "wolbachia/all_wolbachia.fasta")
+## pap_wolbs = SixteenS("paper_wolbachs",path = work_root + "wolbachia/", raw = work_root + "wolbachia/paper_wolbachias.fasta")
 
 if __name__ == '__main__':
     run()

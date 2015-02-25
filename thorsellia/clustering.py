@@ -98,7 +98,7 @@ class Clustering(object):
     def __getitem__(self, key): return self.clusters[key]
 
         
-    def __init__(self, assemblies, path, name, seq_type="proteins",folder = None):
+    def __init__(self, assemblies, path, name, seq_type="genes",folder = None):
 
         if folder:
             from thorsellia.assembly import Assembly
@@ -141,34 +141,32 @@ class Clustering(object):
                 self.id2name_map = {s.description.split(" ")[0] : " ".join(s.description.split(" ")[1:]) for s in SeqIO.parse(fas, "fasta")}
 
     def assembly_id(self, a):
-        return str(sum(ord(c)*i for i,c in enumerate(a)))
+        return str(sum(ord(c)*i for i,c in enumerate(a+a)))
 
                 
     def do_self_blasting(self):
         make_db(self.assemblies, self.db, seq_type = self.seq_type)
-        blast(self.db, self.base, db = self.db , alg = "blastp" if self.seq_type == "proteins" else "blastn", clean=False, post_process=False, outfmt=6, evalue = 10, word_size = 2 if self.seq_type == "proteins" else 9)
+        blast(self.db, self.base, db = self.db , alg = "blastp" if self.seq_type == "proteins" else "blastn", clean=False, post_process=False, outfmt=6, evalue = 10, word_size = 3 if self.seq_type == "proteins" else 11)
 
-    def do_blast_filter(self):
-        with open(self.raw_blast) as inpt:
-            if(self.seq_type == "proteins"):
-                sh.filtersearchio5("-qcoverage", 70, "-identity", 40, "-format", 8, _in = inpt, _out = self.blast)
-            else:
-                sh.filtersearchio5("-qcoverage", 50, "-identity", 30, "-format", 8, _in = inpt, _out = self.blast)
 
-    def do_blast_parsing(self, qcov = 0.50, identity = 30):
+    def do_blast_parsing(self, qcov = 0.70, identity = 40):
         raw_blast = DataFrame.from_csv(self.raw_blast, header=-1,index_col=[0,1],sep="\t")
         raw_blast.columns = blast_head[2:12]
         raw_blast.index.names = blast_head[0:2]
 
         with open(self.db) as file:
             dicti = {s.id : len(s) for s in SeqIO.parse(file,"fasta")}
+
         covs = (raw_blast['subjectend']-raw_blast['subjectstart']+1)/ [float(dicti[n]) for n in raw_blast.index.get_level_values(0)]
         filtered_blast = raw_blast[covs > qcov]
-        # -raw_blast['mismatches']- raw_blast['gapopenings']
-        #        filtered_blast = raw_blast[[float(r[1][5]-r[1][4]+1-r[1][2]-r[1][3]) / float(dicti[r[1].name[0]]) > qcov  for r in raw_blast.iterrows()]]
         filtered_blast = filtered_blast[filtered_blast['identity'] > 30]
+        qcov = 0.70
+        identity = 40
 
- #       1/0
+
+        covs = (raw_blast['subjectend']-raw_blast['subjectstart']+1)/ [float(dicti[n]) for n in raw_blast.index.get_level_values(0)]
+        filtered_blast = raw_blast[covs > qcov]
+        filtered_blast = filtered_blast[filtered_blast['identity'] > identity]
         filtered_blast.to_csv(self.blast,sep="\t", header=False)
 
     def do_mcl(self, inflation = 1.5, resource = 4):
@@ -205,7 +203,7 @@ class Clustering(object):
         self.do_self_blasting()
         
         print "filter blast results"
-#        self.do_blast_filter()
+
         if(self.seq_type == "proteins"):
             self.do_blast_parsing( qcov = 0.5, identity = 30)
         else :
@@ -267,9 +265,9 @@ class Clustering(object):
         
         sh.raxmlHPC_PTHREADS_AVX("-w", self.base + "RAxML/", "-T", threads-2, "-m", model, "-p", self.seed, "-#", 20, "-s", alignment, "-n", "T13")#, "-o", root) 
         print "boostrap dat tree"
-        sh.raxmlHPC_PTHREADS_AVX("-w", self.base + "RAxML/", "-T", threads-2, "-m", model, "-p", self.seed, "-b", self.seed, "-#", 100, "-s", alignment, "-n", "T14")#, "-o", root)
+        sh.raxmlHPC_PTHREADS_AVX("-w", self.base + "RAxML/", "-T", threads-2, "-m", model, "-p", self.seed, "-b", self.seed, "-#", 100, "-s", alignment, "-n", "T14", "-o", root)
         print "combine"
-        sh.raxmlHPC_AVX("-m", "GTRCAT", "-w", self.base + "RAxML/", "-p", self.seed, "-f", "b", "-t", self.base + "RAxML/"+"RAxML_bestTree.T13", "-z",self.base + "RAxML/"+ "RAxML_bootstrap.T14", "-n", "T15")#, "-o", root)
+        sh.raxmlHPC_AVX("-m", "GTRCAT", "-w", self.base + "RAxML/", "-p", self.seed, "-f", "b", "-t", self.base + "RAxML/"+"RAxML_bestTree.T13", "-z",self.base + "RAxML/"+ "RAxML_bootstrap.T14", "-n", "T15", "-o", root)
         print "clean up"
         if os.path.exists(self.base + "_branches_labeled.tree"):
             os.remove(self.base + "_branches_labeled.tree")
