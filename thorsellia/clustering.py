@@ -14,6 +14,7 @@ from tqdm import tqdm
 import sys
 import shutil
 from pandas import DataFrame
+from numpy import nan_to_num
 
 class GeneCluster(object):
 
@@ -304,6 +305,15 @@ class Clustering(object):
                 
         return matrix
 
+    def make_cluster_bmft(self):
+        cluster_table = DataFrame.from_dict({i : {k : len(v) for k,v in c.to_dict()['genes'].iteritems()} for i,c in enumerate(self)}, orient='index')
+        cluster_table = cluster_table.apply(nan_to_num)
+        cluster_table['annotations'] = [c.annotation for c in self]
+        cluster_table['qual_annot'] = [c.annot_fraction for c in self]
+        cluster_table['genes'] = [";".join(c.genes) for c in self]
+        return cluster_table
+        
+    
     def sccs_cat_align(self):
         all_sccs = {}
         for a in self.assemblies:

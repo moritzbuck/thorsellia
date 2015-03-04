@@ -40,9 +40,9 @@ def full_pipe():
     return
 
 def run():
-    clustered_all_prot.run()
-    clustered_all_prot.align_all()
-    clustered_all_prot.cat_align()
+#    clustered_all_prot.run()
+#    clustered_all_prot.align_all()
+#    clustered_all_prot.cat_align()
     clustered_all_prot.tree_construction(root="PseAer")    
     clustered_all_nucl.run()
     clustered_all_nucl.align_all()
